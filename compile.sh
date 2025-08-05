@@ -120,6 +120,8 @@ ln -sf "$dir" "$sdk_home_dir/package/$package_name"
 
 # Force ipk package format
 echo "CONFIG_PACKAGE_FORMAT=ipk" >> .config
+echo "CONFIG_PACKAGE_opkg=y" >> .config   
+echo "CONFIG_USE_APK=n" >> .config
 
 make defconfig
 make package/${package_name}/clean
