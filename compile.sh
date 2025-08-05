@@ -9,10 +9,8 @@ package_name="frp"
 golang_commit="$OPENWRT_GOLANG_COMMIT"
 
 cache_dir=${CACHE_DIR:-"~/cache"}
-
 sdk_url_path=${SDK_URL_PATH:-"https://downloads.openwrt.org/snapshots/targets/x86/64"}
 sdk_name=${SDK_NAME:-"-sdk-x86-64_"}
-
 sdk_home=${SDK_HOME:-"~/sdk"}
 
 sdk_home_dir="$(eval echo "$sdk_home")"
@@ -35,6 +33,11 @@ if ! ( wget -q -O - "$sdk_url_path/sha256sums" | \
 	exit 1
 fi
 
+if [ ! -s "sha256sums.small" ]; then
+    echo "Error: sha256sums.small is empty or invalid for $sdk_name"
+    exit 1
+fi
+
 sdk_file="$(cut -d' ' -f2 < sha256sums.small | sed 's/*//g')"
 
 if ! sha256sum -c ./sha256sums.small >/dev/null 2>&1 ; then
@@ -49,9 +52,25 @@ fi
 cd "$dir"
 
 file "$sdk_dir/$sdk_file"
-tar -Jxf "$sdk_dir/$sdk_file" -C "$sdk_home_dir" --strip=1
+if [[ "$sdk_file" == *.tar.zst ]]; then
+    zstd -dc "$sdk_dir/$sdk_file" | tar -x -C "$sdk_home_dir" --strip=1
+elif [[ "$sdk_file" == *.tar.xz ]]; then
+    tar -Jxf "$sdk_dir/$sdk_file" -C "$sdk_home_dir" --strip=1
+else
+    echo "Unsupported SDK file format: $sdk_file"
+    exit 1
+fi
 
 cd "$sdk_home_dir"
+
+if [ ! -f "$sdk_home_dir/feeds.conf.default" ]; then
+    echo "Error: feeds.conf.default not found in $sdk_home_dir"
+    exit 1
+fi
+if [ ! -d "$sdk_home_dir/scripts" ]; then
+    echo "Error: scripts directory not found in $sdk_home_dir"
+    exit 1
+fi
 
 ( test -d "dl" && rm -rf "dl" ) || true
 ( test -d "feeds" && rm -rf "feeds" ) || true
@@ -83,12 +102,12 @@ if [ -n "$golang_commit" ] ; then
 		tar -xz -C "feeds/packages/lang" --strip=2 "packages-$golang_commit/lang/golang"
 fi
 
-ln -sf "$dir" "package/$package_name"
+mkdir -p "$sdk_home_dir/package"
+ln -sf "$dir" "$sdk_home_dir/package/$package_name"
 
 ./scripts/feeds install -a
 
 make defconfig
-
 make package/${package_name}/clean
 make package/${package_name}/compile V=s
 
