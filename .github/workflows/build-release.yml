@@ -32,6 +32,15 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v2
+        with:
+          fetch-depth: 0 # Required for tag creation
+
+      - name: Create Tag for workflow_dispatch
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          TAG_NAME="build-${{ github.run_number }}"
+          git tag $TAG_NAME
+          git push origin $TAG_NAME
 
       - name: Setup Cache
         uses: actions/cache@v4
