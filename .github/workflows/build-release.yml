@@ -7,7 +7,26 @@ on:
       - "*"
 
 jobs:
+  create-tag:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Create or Update Tag
+        run: |
+          TAG_NAME="build-${{ github.run_number }}"
+          if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME"; then
+            echo "Tag $TAG_NAME already exists, deleting it"
+            git push origin :refs/tags/$TAG_NAME
+          fi
+          git tag -f $TAG_NAME
+          git push origin $TAG_NAME
+
   release:
+    needs: create-tag
     name: Build for ${{ matrix.arch }}
     runs-on: ubuntu-latest
     strategy:
@@ -31,16 +50,7 @@ jobs:
       CACHE_DIR: ~/cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0 # Required for tag creation
-
-      - name: Create Tag for workflow_dispatch
-        if: github.event_name == 'workflow_dispatch'
-        run: |
-          TAG_NAME="build-${{ github.run_number }}"
-          git tag $TAG_NAME
-          git push origin $TAG_NAME
+        uses: actions/checkout@v4
 
       - name: Setup Cache
         uses: actions/cache@v4
@@ -68,5 +78,6 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           files: "*.ipk"
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && format('build-{0}', github.run_number) || github.ref_name }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
