@@ -121,7 +121,7 @@ jobs:
       CACHE_DIR: ~/cache
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Setup Cache
         uses: actions/cache@v4
@@ -146,7 +146,7 @@ jobs:
         run: sh compile.sh
 
       - name: Release and Upload Assets
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v4
         with:
           files: "*.ipk"
         env:
