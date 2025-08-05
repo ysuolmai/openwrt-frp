@@ -118,12 +118,16 @@ ln -sf "$dir" "$sdk_home_dir/package/$package_name"
 
 ./scripts/feeds install -a
 
+# Force ipk package format
+echo "CONFIG_PACKAGE_FORMAT=ipk" >> .config
+
 make defconfig
 make package/${package_name}/clean
 make package/${package_name}/compile V=s
 
 cd "$dir"
 
+echo "Listing files in $sdk_home_dir/bin/:"
 find "$sdk_home_dir/bin/" -type f -exec ls -lh {} \;
 
 find "$sdk_home_dir/bin/" -type f -name "${package_name}*.ipk" -exec cp -f {} "$dir" \;
