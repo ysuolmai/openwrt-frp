@@ -30,6 +30,8 @@ cd "$sdk_dir"
 if ! ( wget -q -O - "$sdk_url_path/sha256sums" | \
 	grep -- "$sdk_name" > sha256sums.small 2>/dev/null ) ; then
 	echo "Can not find ${sdk_name} file in sha256sums."
+	echo "Contents of sha256sums from $sdk_url_path/sha256sums:"
+	wget -q -O - "$sdk_url_path/sha256sums"
 	exit 1
 fi
 
@@ -51,15 +53,24 @@ fi
 
 cd "$dir"
 
-file "$sdk_dir/$sdk_file"
-if [[ "$sdk_file" == *.tar.zst ]]; then
-    zstd -dc "$sdk_dir/$sdk_file" | tar -x -C "$sdk_home_dir" --strip=1
-elif [[ "$sdk_file" == *.tar.xz ]]; then
-    tar -Jxf "$sdk_dir/$sdk_file" -C "$sdk_home_dir" --strip=1
-else
-    echo "Unsupported SDK file format: $sdk_file"
+if ! command -v zstd >/dev/null 2>&1; then
+    echo "Error: zstd is not installed"
     exit 1
 fi
+
+echo "SDK file: $sdk_file"
+case "$sdk_file" in
+    *.tar.zst)
+        zstd -dc "$sdk_dir/$sdk_file" | tar -x -C "$sdk_home_dir" --strip=1
+        ;;
+    *.tar.xz)
+        tar -Jxf "$sdk_dir/$sdk_file" -C "$sdk_home_dir" --strip=1
+        ;;
+    *)
+        echo "Unsupported SDK file format: $sdk_file"
+        exit 1
+        ;;
+esac
 
 cd "$sdk_home_dir"
 
