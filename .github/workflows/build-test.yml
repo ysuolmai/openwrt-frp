@@ -43,7 +43,7 @@ jobs:
         run: sh compile.sh
 
       - name: Save Build Result
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v4
         with:
           name: frp
           path: |
